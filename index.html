@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestor de Pedidos · ERP</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#fff; --ink:#1e293b; --muted:#64748b;
+    --line:#e2e8f0; --soft:#f1f5f9; --brand:#2563eb; --brand-d:#1d4ed8;
+    --ok:#16a34a; --warn:#d97706; --danger:#dc2626; --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+    --t-nueva:#7c3aed; --t-correccion:#dc2626; --t-mejora:#0891b2; --t-consulta:#64748b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f8fafc;color:var(--ink);font-size:14px;line-height:1.5}
+  header{background:var(--bg);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header h1{font-size:17px;margin:0;font-weight:600}
+  header .tag{font-size:11px;background:#334155;padding:3px 8px;border-radius:20px;color:#cbd5e1}
+  .spacer{flex:1}
+  .me{font-size:12.5px;color:#cbd5e1;display:flex;align-items:center;gap:10px}
+  .me b{color:#fff}
+  .me .rolechip{background:#334155;padding:2px 8px;border-radius:20px;font-size:11px}
+  .me button{background:#1e293b;color:#fff;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer}
+  nav{display:flex;gap:2px;background:#fff;padding:0 16px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  nav button{background:none;border:none;padding:14px 16px;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-weight:500;white-space:nowrap}
+  nav button.active{color:var(--brand);border-bottom-color:var(--brand)}
+  nav button:hover{color:var(--ink)}
+  nav .count{background:var(--soft);border-radius:10px;padding:1px 7px;font-size:11px;margin-left:6px;color:var(--muted)}
+  main{max-width:1120px;margin:0 auto;padding:22px}
+  .view{display:none}.view.active{display:block}
+  h2.title{font-size:18px;margin:0 0 4px}
+  p.sub{color:var(--muted);margin:0 0 18px;font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px}
+  .req{display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:border-color .15s}
+  .req:hover{border-color:#cbd5e1}
+  .pos{min-width:34px;height:34px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+  .req-body{flex:1;min-width:0}
+  .req-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .req-title{font-weight:600;font-size:14.5px}
+  .req-meta{color:var(--muted);font-size:12.5px;margin-top:3px;display:flex;gap:14px;flex-wrap:wrap}
+  .req-meta b{color:var(--ink);font-weight:600}
+  .chip{font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;color:#fff;white-space:nowrap}
+  .chip.tipo-nueva{background:var(--t-nueva)}.chip.tipo-correccion{background:var(--t-correccion)}
+  .chip.tipo-mejora{background:var(--t-mejora)}.chip.tipo-consulta{background:var(--t-consulta)}
+  .estado{font-size:11px;font-weight:600;padding:2px 9px;border-radius:6px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+  .estado.st-desarrollo{background:#eff6ff;color:var(--brand);border-color:#bfdbfe}
+  .estado.st-prueba{background:#fefce8;color:var(--warn);border-color:#fde68a}
+  .estado.st-hecho{background:#f0fdf4;color:var(--ok);border-color:#bbf7d0}
+  .estado.st-rechazado{background:#fef2f2;color:var(--danger);border-color:#fecaca}
+  .verimpl{font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;background:#f0fdf4;color:var(--ok);border:1px solid #bbf7d0;white-space:nowrap}
+  .clip{font-size:12px;color:var(--muted)}
+  .id{font-size:11px;color:#94a3b8;font-family:ui-monospace,monospace}
+  .ord-btns{display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-self:center}
+  .ord-btns button{width:32px;height:26px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;font-size:12px;color:var(--muted);line-height:1;padding:0}
+  .ord-btns button:hover{background:var(--soft);color:var(--brand);border-color:var(--brand)}
+  .board{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .col{background:var(--soft);border-radius:10px;padding:10px;min-height:120px}
+  .col h3{font-size:12.5px;margin:0 0 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between}
+  .col .mini{background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 10px;margin-bottom:8px;cursor:pointer;font-size:13px}
+  .col .mini .mt{font-weight:600;margin-bottom:4px}
+  .col .mini .mm{color:var(--muted);font-size:11.5px}
+  form.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:720px}
+  form.grid .full{grid-column:1/3}
+  label{display:block;font-weight:600;font-size:12.5px;margin-bottom:5px;color:#334155}
+  input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;background:#fff;color:var(--ink)}
+  input[type=file]{padding:7px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+  textarea{resize:vertical;min-height:90px}
+  .btn{background:var(--brand);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+  .btn:hover{background:var(--brand-d)}.btn:disabled{opacity:.6;cursor:default}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.sm{padding:6px 12px;font-size:12.5px}
+  .btn.danger{background:var(--danger)}.btn.ok{background:var(--ok)}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .empty{text-align:center;color:var(--muted);padding:40px;background:#fff;border:1px dashed var(--line);border-radius:10px}
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px;overflow:auto}
+  .overlay.open{display:flex}
+  .modal{background:#fff;border-radius:14px;max-width:640px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+  .modal-h{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:10px}
+  .modal-h .x{margin-left:auto;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+  .modal-b{padding:20px 22px}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:8px 14px;font-size:13.5px;margin-bottom:18px}
+  .kv .k{color:var(--muted);font-weight:600}
+  .desc{background:var(--soft);border-radius:8px;padding:12px 14px;font-size:13.5px;margin-bottom:18px;white-space:pre-wrap}
+  .imgbox img{max-width:100%;border-radius:8px;border:1px solid var(--line);margin-bottom:18px;display:block}
+  .sec-h{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;margin:0 0 10px}
+  .hist{border-left:2px solid var(--line);padding-left:14px;margin-left:4px}
+  .hist-item{position:relative;padding-bottom:14px}
+  .hist-item::before{content:"";position:absolute;left:-21px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--brand);border:2px solid #fff}
+  .hist-v{font-weight:700;font-size:13px}.hist-d{font-size:11.5px;color:var(--muted);margin-bottom:3px}.hist-t{font-size:13px}
+  .addbox{background:var(--soft);border-radius:8px;padding:14px;margin-top:12px}
+  .addbox .row{display:grid;grid-template-columns:120px 1fr;gap:10px;margin-bottom:10px;align-items:center}
+  .hint{font-size:12px;color:var(--muted);background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:16px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 20px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;z-index:99;pointer-events:none}
+  .toast.show{opacity:1}
+  /* Login */
+  #login{position:fixed;inset:0;background:#0f172a;display:none;align-items:center;justify-content:center;z-index:80;padding:20px}
+  #login.open{display:flex}
+  .login-card{background:#fff;border-radius:14px;padding:30px;width:100%;max-width:380px;box-shadow:0 20px 50px rgba(0,0,0,.4)}
+  .login-card h2{margin:0 0 4px;font-size:19px}
+  .login-card p{margin:0 0 20px;color:var(--muted);font-size:13px}
+  .login-card label{margin-top:12px}
+  .login-err{color:var(--danger);font-size:12.5px;margin-top:10px;min-height:16px}
+  .cfg-warn{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:14px;border-radius:10px;font-size:13px;margin:20px}
+  @media(max-width:640px){form.grid{grid-template-columns:1fr}form.grid .full{grid-column:1}.kv{grid-template-columns:1fr}.addbox .row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ================== LOGIN ================== -->
+<div id="login">
+  <div class="login-card">
+    <h2>Gestor de Pedidos · ERP</h2>
+    <p>Ingresá con tu email y contraseña.</p>
+    <form onsubmit="return hacerLogin(event)">
+      <label>Email</label>
+      <input id="l-email" type="email" required autocomplete="username" placeholder="tu@empresa.com">
+      <label>Contraseña</label>
+      <input id="l-pass" type="password" required autocomplete="current-password" placeholder="••••••••">
+      <div class="login-err" id="l-err"></div>
+      <button class="btn" style="width:100%;margin-top:8px" id="l-btn">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<!-- ================== APP ================== -->
+<div id="app" style="display:none">
+  <header>
+    <h1>Gestor de Pedidos · ERP</h1>
+    <span class="tag" id="hdrTag"></span>
+    <div class="spacer"></div>
+    <div class="me">
+      <span><b id="meNombre"></b> <span class="rolechip" id="meRol"></span></span>
+      <button onclick="salir()">Salir</button>
+    </div>
+  </header>
+
+  <nav id="nav">
+    <button data-view="nuevo" onclick="show('nuevo')">+ Nuevo pedido</button>
+    <button data-view="bandeja" onclick="show('bandeja')">Bandeja de pedidos <span class="count" id="c-bandeja">0</span></button>
+    <button data-view="cola" onclick="show('cola')">Cola de prioridades <span class="count" id="c-cola">0</span></button>
+    <button data-view="tablero" onclick="show('tablero')">Tablero</button>
+    <button data-view="impl" onclick="show('impl')">Implementaciones <span class="count" id="c-impl">0</span></button>
+  </nav>
+
+  <main>
+    <section class="view active" id="view-nuevo">
+      <h2 class="title">Nuevo pedido</h2>
+      <p class="sub">Cargá el <b>qué</b> necesitás y por qué. El coordinador define el cómo y la prioridad.</p>
+      <form class="grid" id="reqForm" onsubmit="return crearPedido(event)">
+        <div class="full"><label>Título del pedido *</label>
+          <input id="f-titulo" required placeholder="Ej: Agregar campo 'color RAL' en orden de producción"></div>
+        <div><label>Área solicitante *</label>
+          <select id="f-area" required>
+            <option value="">Seleccionar…</option>
+            <option>Producción</option><option>Comercial</option>
+            <option>Administración</option><option>Servicios</option><option>Gerencia Gral.</option>
+          </select></div>
+        <div><label>Tipo de pedido *</label>
+          <select id="f-tipo" required>
+            <option value="">Seleccionar…</option>
+            <option>Nueva implementación</option><option>Corrección</option>
+            <option>Mejora</option><option>Consulta</option>
+          </select></div>
+        <div class="full"><label>¿Qué necesitás? ¿Qué problema resuelve? *</label>
+          <textarea id="f-desc" required placeholder="Describí el objetivo, no la solución técnica. (Si querés, indicá acá el módulo del ERP a mano)."></textarea></div>
+        <div class="full"><label>Captura / imagen de ejemplo (opcional · JPG, PNG o GIF)</label>
+          <input type="file" id="f-img" accept="image/*" onchange="cargarImg(this)">
+          <div id="imgPrev"></div></div>
+        <div class="full actions">
+          <button type="submit" class="btn" id="btnEnviar">Enviar pedido</button>
+          <button type="button" class="btn ghost" onclick="limpiarForm()">Limpiar</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="view" id="view-bandeja">
+      <h2 class="title">Bandeja de pedidos</h2>
+      <p class="sub">Pedidos recién cargados. Se revisan, se depuran y se envían a la cola con una posición, o se rechazan.</p>
+      <div id="bandejaList"></div>
+    </section>
+
+    <section class="view" id="view-cola">
+      <h2 class="title">Cola de prioridades</h2>
+      <p class="sub">Orden de ejecución 1…N. El desarrollador trabaja de arriba hacia abajo.</p>
+      <div class="hint" id="colaHint"></div>
+      <div id="colaList"></div>
+    </section>
+
+    <section class="view" id="view-tablero">
+      <h2 class="title">Tablero por estado</h2>
+      <p class="sub">Panorama completo del ciclo de vida de cada pedido.</p>
+      <div class="board" id="board"></div>
+    </section>
+
+    <section class="view" id="view-impl">
+      <h2 class="title">Implementaciones concretadas</h2>
+      <p class="sub">Registro temporal de todo lo implementado, con su versión y fecha. Para saber a partir de qué versión está disponible cada cosa.</p>
+      <div id="implList"></div>
+    </section>
+  </main>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)cerrar()"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* =====================================================================
+   CONFIGURACIÓN  —  completá estos dos valores (ver la guía de instalación)
+   Los encontrás en Supabase -> Project Settings -> API
+   ===================================================================== */
+const SUPABASE_URL      = "https://xevgbuwbobrrkfmxwxkj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_GZgHBspV__jZv0cBNg3Eig_mwzuvA-Y";
+/* ===================================================================== */
+
+const ESTADOS = ["Nuevo","En revisión","En cola","En desarrollo","En prueba","Hecho","Rechazado"];
+const EN_COLA = ["En cola","En desarrollo","En prueba"];
+let sb = null, me = null, pedidos = [], imgBlob = null, imgName = "", realtimeReady = false;
+
+const esGestor = () => me && (me.rol==="coordinador" || me.rol==="desarrollador");
+const tipoClass = t => ({"Nueva implementación":"tipo-nueva","Corrección":"tipo-correccion","Mejora":"tipo-mejora","Consulta":"tipo-consulta"}[t]||"tipo-consulta");
+const estadoClass = e => ({"En desarrollo":"st-desarrollo","En prueba":"st-prueba","Hecho":"st-hecho","Rechazado":"st-rechazado"}[e]||"");
+const codigo = id => "PED-" + String(id).padStart(3,"0");
+const fechaCorta = ts => (ts||"").slice(0,10);
+
+/* ---------- Arranque ---------- */
+window.addEventListener("DOMContentLoaded", init);
+async function init(){
+  if(SUPABASE_URL.includes("TU-PROYECTO") || SUPABASE_ANON_KEY.includes("TU-ANON")){
+    document.body.insertAdjacentHTML("afterbegin",
+      '<div class="cfg-warn"><b>Falta configurar Supabase.</b> Abrí este archivo y completá <code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code> al principio del script. Ver la guía de instalación.</div>');
+    return;
+  }
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session) await entrar();
+  else mostrarLogin();
+  sb.auth.onAuthStateChange((_e, s)=>{ if(s && !me) entrar(); else if(!s && me) mostrarLogin(); });
+}
+function mostrarLogin(){
+  me = null;
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login").classList.add("open");
+}
+async function hacerLogin(e){
+  e.preventDefault();
+  const btn = document.getElementById("l-btn"); btn.disabled = true;
+  document.getElementById("l-err").textContent = "";
+  const { error } = await sb.auth.signInWithPassword({
+    email: val("l-email"), password: document.getElementById("l-pass").value });
+  btn.disabled = false;
+  if(error){ document.getElementById("l-err").textContent = "Email o contraseña incorrectos."; return false; }
+  await entrar();
+  return false;
+}
+async function salir(){ await sb.auth.signOut(); me = null; mostrarLogin(); }
+
+async function entrar(){
+  const { data:{ user } } = await sb.auth.getUser();
+  if(!user){ mostrarLogin(); return; }
+  const { data: prof } = await sb.from("profiles").select("*").eq("id", user.id).single();
+  if(!prof){ document.getElementById("l-err").textContent = "Tu usuario no tiene perfil asignado. Avisá al administrador."; return; }
+  me = { id:user.id, nombre:prof.nombre||user.email, area:prof.area||"", rol:prof.rol||"solicitante" };
+  document.getElementById("login").classList.remove("open");
+  document.getElementById("app").style.display = "block";
+  document.getElementById("meNombre").textContent = me.nombre;
+  document.getElementById("meRol").textContent = ({solicitante:"Solicitante",coordinador:"Coordinador",desarrollador:"Desarrollador"}[me.rol]);
+  if(me.area){ const s=document.getElementById("f-area"); s.value = me.area; }
+  aplicarNav();
+  await cargarPedidos();
+  suscribir();
+  show("nuevo");
+}
+
+/* ---------- Datos ---------- */
+async function cargarPedidos(){
+  const { data, error } = await sb.rpc("pedidos_visibles");
+  if(error){ toast("Error al cargar: "+error.message); return; }
+  pedidos = data || [];
+  render();
+}
+function suscribir(){
+  if(realtimeReady) return; realtimeReady = true;
+  sb.channel("cambios")
+    .on("postgres_changes",{ event:"*", schema:"public", table:"pedidos" }, cargarPedidos)
+    .on("postgres_changes",{ event:"*", schema:"public", table:"historial" }, cargarPedidos)
+    .subscribe();
+}
+
+/* ---------- Navegación ---------- */
+function show(v){
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+  document.getElementById("view-"+v).classList.add("active");
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active", b.dataset.view===v));
+  render();
+}
+function aplicarNav(){
+  const permit = (me.rol==="solicitante") ? ["nuevo","cola","impl"] : ["nuevo","bandeja","cola","tablero","impl"];
+  document.querySelectorAll("#nav button").forEach(b=>{ b.style.display = permit.includes(b.dataset.view) ? "" : "none"; });
+  const activa = document.querySelector("#nav button.active");
+  if(!activa || activa.style.display==="none") show("nuevo");
+}
+
+/* ---------- Render ---------- */
+function render(){
+  if(!me) return;
+  const gestor = esGestor(), sol = me.rol==="solicitante";
+  const hint = document.getElementById("colaHint");
+  if(gestor){ hint.style.display="block"; hint.innerHTML='💡 Reordená con los botones ▲▼. El número <b>es</b> la prioridad — no hay "alta/media/baja".'; }
+  else if(sol){ hint.style.display="block"; hint.innerHTML='👀 Ves tus pedidos y la posición en la que están dentro de la cola general.'; }
+  else hint.style.display="none";
+
+  const cola = pedidos.filter(p=>EN_COLA.includes(p.estado)).sort((a,b)=>a.orden-b.orden);
+  const bandeja = pedidos.filter(p=>p.estado==="Nuevo" || p.estado==="En revisión");
+  const impl = pedidos.filter(p=>p.estado==="Hecho").sort((a,b)=>(b.creado||"").localeCompare(a.creado||""));
+  document.getElementById("c-cola").textContent = cola.length;
+  document.getElementById("c-bandeja").textContent = bandeja.length;
+  document.getElementById("c-impl").textContent = impl.length;
+
+  const cl = document.getElementById("colaList");
+  cl.innerHTML = cola.length ? cola.map(p=>reqCard(p, p.posicion, gestor)).join("")
+                             : '<div class="empty">No hay pedidos en la cola todavía.</div>';
+
+  const bl = document.getElementById("bandejaList");
+  bl.innerHTML = bandeja.length ? bandeja.map(p=>reqCard(p,null,false)).join("")
+                                : '<div class="empty">Bandeja vacía. Todo revisado 👍</div>';
+
+  const il = document.getElementById("implList");
+  il.innerHTML = impl.length ? impl.map(p=>implCard(p)).join("")
+                             : '<div class="empty">Todavía no hay implementaciones concretadas.</div>';
+
+  const board = document.getElementById("board");
+  board.innerHTML = ESTADOS.map(e=>{
+    const items = pedidos.filter(p=>p.estado===e).sort((a,b)=>(a.orden||0)-(b.orden||0));
+    return `<div class="col"><h3>${e}<span>${items.length}</span></h3>${
+      items.map(p=>`<div class="mini" onclick="abrir(${p.id})">
+        <div class="mt">${esc(p.titulo)}</div>
+        <div class="mm"><span class="chip ${tipoClass(p.tipo)}" style="font-size:9px;padding:1px 6px">${p.tipo}</span> · ${esc(p.area)}${p.version?` · <b style="color:var(--ok)">✔ ${esc(p.version)}</b>`:""}</div>
+      </div>`).join("") || '<div style="color:#94a3b8;font-size:12px;padding:6px">—</div>'
+    }</div>`;
+  }).join("");
+}
+
+function reqCard(p, pos, ctrl){
+  return `<div class="card req" onclick="abrir(${p.id})">
+    ${pos?`<div class="pos">${pos}</div>`:''}
+    <div class="req-body">
+      <div class="req-top">
+        <span class="req-title">${esc(p.titulo)}</span>
+        <span class="chip ${tipoClass(p.tipo)}">${p.tipo}</span>
+        <span class="estado ${estadoClass(p.estado)}">${p.estado}</span>
+        ${p.version?`<span class="verimpl">✔ ${esc(p.version)}</span>`:''}
+        ${p.imagen_url?'<span class="clip" title="Tiene imagen">📎</span>':''}
+        <span class="id">${codigo(p.id)}</span>
+      </div>
+      <div class="req-meta">
+        <span><b>Área:</b> ${esc(p.area)}</span>
+        <span><b>Solicita:</b> ${esc(p.solicitante_nombre)}</span>
+      </div>
+    </div>
+    ${ctrl?`<div class="ord-btns" onclick="event.stopPropagation()">
+      <button onclick="mover(${p.id},-1)" title="Subir prioridad">▲</button>
+      <button onclick="mover(${p.id},1)" title="Bajar prioridad">▼</button>
+    </div>`:''}
+  </div>`;
+}
+function implCard(p){
+  return `<div class="card req" onclick="abrir(${p.id})">
+    <div style="min-width:74px;display:flex;align-items:center"><span class="verimpl" style="font-size:13px">✔ ${esc(p.version||'—')}</span></div>
+    <div class="req-body">
+      <div class="req-top"><span class="req-title">${esc(p.titulo)}</span>
+        <span class="chip ${tipoClass(p.tipo)}">${p.tipo}</span><span class="id">${codigo(p.id)}</span></div>
+      <div class="req-meta"><span><b>Área:</b> ${esc(p.area)}</span><span><b>Registrado:</b> ${fechaCorta(p.creado)}</span></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Reordenar (gestores) ---------- */
+async function mover(id, dir){
+  const cola = pedidos.filter(p=>EN_COLA.includes(p.estado)).sort((a,b)=>a.orden-b.orden);
+  const i = cola.findIndex(p=>p.id===id), j = i+dir;
+  if(i<0 || j<0 || j>=cola.length) return;
+  [cola[i],cola[j]] = [cola[j],cola[i]];
+  await Promise.all(cola.map((p,k)=> sb.from("pedidos").update({orden:k+1}).eq("id",p.id) ));
+  await cargarPedidos(); toast("Cola reordenada");
+}
+
+/* ---------- Imagen ---------- */
+function cargarImg(input){
+  const file = input.files[0];
+  if(!file){ imgBlob=null; imgName=""; document.getElementById("imgPrev").innerHTML=""; return; }
+  imgName = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    if(file.type==="image/gif"){ imgBlob=file; preview(e.target.result); return; }
+    const img = new Image();
+    img.onload = () => {
+      const max=1200; let w=img.width, h=img.height;
+      if(w>max||h>max){ const r=Math.min(max/w,max/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      c.toBlob(b=>{ imgBlob=b; imgName=(file.name.replace(/\.[^.]+$/,"")||"img")+".jpg"; preview(c.toDataURL("image/jpeg",0.8)); }, "image/jpeg", 0.8);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function preview(url){ document.getElementById("imgPrev").innerHTML = `<img src="${url}" style="max-width:200px;max-height:150px;border-radius:8px;margin-top:8px;border:1px solid var(--line)">`; }
+
+/* ---------- Alta ---------- */
+async function crearPedido(e){
+  e.preventDefault();
+  const btn = document.getElementById("btnEnviar"); btn.disabled = true;
+  let imagen_url = null;
+  try{
+    if(imgBlob){
+      const path = `${me.id}/${Date.now()}_${(imgName||"img").replace(/[^\w.\-]/g,"_")}`;
+      const up = await sb.storage.from("capturas").upload(path, imgBlob, { upsert:false, contentType: imgBlob.type||"image/jpeg" });
+      if(up.error) throw up.error;
+      imagen_url = sb.storage.from("capturas").getPublicUrl(path).data.publicUrl;
+    }
+    const { error } = await sb.from("pedidos").insert({
+      titulo:val("f-titulo"), area:val("f-area"), tipo:val("f-tipo"), descripcion:val("f-desc"),
+      solicitante_id: me.id, solicitante_nombre: me.nombre, imagen_url, estado:"Nuevo", orden:0
+    });
+    if(error) throw error;
+    limpiarForm();
+    await cargarPedidos();
+    toast("Pedido enviado");
+    show(me.rol==="solicitante" ? "cola" : "bandeja");
+  }catch(err){ toast("No se pudo enviar: "+err.message); }
+  finally{ btn.disabled = false; }
+  return false;
+}
+function limpiarForm(){
+  document.getElementById("reqForm").reset();
+  imgBlob=null; imgName=""; document.getElementById("imgPrev").innerHTML="";
+  if(me && me.area) document.getElementById("f-area").value = me.area;
+}
+
+/* ---------- Detalle / modal ---------- */
+async function abrir(id){
+  const p = pedidos.find(x=>x.id===id); if(!p) return;
+  const gestor = esGestor();
+  const { data: h } = await sb.from("historial").select("*").eq("pedido_id", id).order("fecha",{ascending:true});
+  const hist = (h && h.length)
+    ? `<div class="hist">${h.slice().reverse().map(x=>`
+        <div class="hist-item">
+          <div class="hist-v">${x.version?esc(x.version)+" · ":""}${esc(x.estado)}</div>
+          <div class="hist-d">${fechaCorta(x.fecha)} · ${esc(x.autor)}</div>
+          <div class="hist-t">${esc(x.detalle)}</div>
+        </div>`).join("")}</div>`
+    : '<div style="color:#94a3b8;font-size:13px">Sin registros aún.</div>';
+  const opciones = ESTADOS.map(e=>`<option ${e===p.estado?'selected':''}>${e}</option>`).join("");
+
+  document.getElementById("modal").innerHTML = `
+    <div class="modal-h"><div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="chip ${tipoClass(p.tipo)}">${p.tipo}</span>
+        <span class="estado ${estadoClass(p.estado)}">${p.estado}</span>
+        ${p.version?`<span class="verimpl">✔ Implementado en ${esc(p.version)}</span>`:''}
+        <span class="id">${codigo(p.id)}</span>
+      </div>
+      <div style="font-size:16px;font-weight:600;margin-top:8px">${esc(p.titulo)}</div>
+    </div><button class="x" onclick="cerrar()">×</button></div>
+    <div class="modal-b">
+      <div class="kv">
+        <span class="k">Área</span><span>${esc(p.area)}</span>
+        <span class="k">Solicitante</span><span>${esc(p.solicitante_nombre)}</span>
+        <span class="k">Creado</span><span>${fechaCorta(p.creado)}</span>
+        ${p.version?`<span class="k">Impl. en versión</span><span><b style="color:var(--ok)">${esc(p.version)}</b></span>`:''}
+      </div>
+      <div class="desc">${esc(p.descripcion)}</div>
+      ${p.imagen_url?`<div class="imgbox"><img src="${esc(p.imagen_url)}" alt="captura"></div>`:''}
+
+      ${gestor ? `
+      <div class="sec-h">Gestión</div>
+      <div class="addbox" style="margin-top:0">
+        <div class="row"><label style="margin:0">Estado</label><select id="m-estado">${opciones}</select></div>
+        <div class="row"><label style="margin:0">Impl. en versión</label>
+          <input id="m-verimpl" value="${esc(p.version||'')}" placeholder="Ej: v1.5"></div>
+        <div class="actions">
+          <button class="btn sm" onclick="guardarGestion(${p.id})">Actualizar estado + versión</button>
+          ${p.estado==="Nuevo"||p.estado==="En revisión" ? `<button class="btn sm ok" onclick="aprobar(${p.id})">✓ Aprobar y enviar a cola</button>
+          <button class="btn sm danger" onclick="setEstado(${p.id},'Rechazado')">Rechazar</button>`:''}
+        </div>
+      </div>` : ''}
+
+      <div class="sec-h" style="margin-top:22px">Registro de cambios / versiones</div>
+      ${hist}
+
+      ${gestor ? `
+      <div class="addbox">
+        <div class="row"><label style="margin:0">Versión</label><input id="m-ver" placeholder="Ej: v1.2 (opcional)"></div>
+        <div class="row"><label style="margin:0">¿Qué se hizo?</label>
+          <textarea id="m-det" style="min-height:60px" placeholder="Ej: Se agregó el campo y validación."></textarea></div>
+        <button class="btn sm" onclick="agregarVersion(${p.id})">Agregar al registro</button>
+      </div>`:''}
+    </div>`;
+  document.getElementById("overlay").classList.add("open");
+}
+function cerrar(){ document.getElementById("overlay").classList.remove("open"); }
+
+async function guardarGestion(id){
+  const estado = document.getElementById("m-estado").value;
+  const version = document.getElementById("m-verimpl").value.trim();
+  const p = pedidos.find(x=>x.id===id);
+  const patch = { estado, version };
+  if(EN_COLA.includes(estado) && !EN_COLA.includes(p.estado) && !p.orden) patch.orden = maxOrden()+1;
+  if(!EN_COLA.includes(estado)) patch.orden = 0;
+  const { error } = await sb.from("pedidos").update(patch).eq("id",id);
+  if(error){ toast("Error: "+error.message); return; }
+  cerrar(); await cargarPedidos(); toast("Actualizado");
+}
+async function setEstado(id, estado){
+  const patch = { estado };
+  if(!EN_COLA.includes(estado)) patch.orden = 0;
+  const { error } = await sb.from("pedidos").update(patch).eq("id",id);
+  if(error){ toast("Error: "+error.message); return; }
+  cerrar(); await cargarPedidos(); toast("Estado → "+estado);
+}
+async function aprobar(id){
+  const { error } = await sb.from("pedidos").update({ estado:"En cola", orden:maxOrden()+1 }).eq("id",id);
+  if(error){ toast("Error: "+error.message); return; }
+  cerrar(); await cargarPedidos(); toast("Enviado a la cola"); show("cola");
+}
+async function agregarVersion(id){
+  const det = document.getElementById("m-det").value.trim();
+  if(!det){ toast("Escribí qué se hizo"); return; }
+  const p = pedidos.find(x=>x.id===id);
+  const { error } = await sb.from("historial").insert({
+    pedido_id:id, version: document.getElementById("m-ver").value.trim(),
+    detalle:det, estado:p.estado, autor: me.nombre });
+  if(error){ toast("Error: "+error.message); return; }
+  await cargarPedidos(); abrir(id); toast("Registro agregado");
+}
+function maxOrden(){ return Math.max(0, ...pedidos.filter(p=>EN_COLA.includes(p.estado)).map(p=>p.orden||0)); }
+
+/* ---------- Utilidades ---------- */
+function val(id){ return document.getElementById(id).value.trim(); }
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+let toastT;
+function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2600); }
+</script>
+</body>
+</html>
