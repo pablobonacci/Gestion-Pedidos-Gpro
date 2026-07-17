@@ -542,4 +542,8 @@ function maxOrden(){ return Math.max(0, ...pedidos.filter(p=>EN_COLA.includes(p.
 function val(id){ return document.getElementById(id).value.trim(); }
 function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 let toastT;
-function toast(m){ const t=document.getElementByI
+function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2600); }
+</script>
+</body>
+</html>
