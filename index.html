@@ -265,7 +265,7 @@ async function entrar(){
   document.getElementById("login").classList.remove("open");
   document.getElementById("app").style.display = "block";
   document.getElementById("meNombre").textContent = me.nombre;
-  document.getElementById("meRol").textContent = ({solicitante:"Solicitante",coordinador:"Coordinador",desarrollador:"Desarrollador"}[me.rol]);
+  document.getElementById("meRol").textContent = ({solicitante:"Solicitante",coordinador:"Coordinador",desarrollador:"Desarrollador",visor:"Visor"}[me.rol]||me.rol);
   if(me.area){ const s=document.getElementById("f-area"); s.value = me.area; }
   aplicarNav();
   await cargarPedidos();
@@ -309,6 +309,7 @@ function render(){
   const hint = document.getElementById("colaHint");
   if(gestor){ hint.style.display="block"; hint.innerHTML='💡 Reordená con los botones ▲▼. El número <b>es</b> la prioridad — no hay "alta/media/baja".'; }
   else if(sol){ hint.style.display="block"; hint.innerHTML='👀 Ves tus pedidos y la posición en la que están dentro de la cola general.'; }
+  else if(me.rol==="visor"){ hint.style.display="block"; hint.innerHTML='👁️ Modo solo lectura: ves todo el sistema, sin editar.'; }
   else hint.style.display="none";
 
   const cola = pedidos.filter(p=>EN_COLA.includes(p.estado)).sort((a,b)=>a.orden-b.orden);
@@ -541,8 +542,4 @@ function maxOrden(){ return Math.max(0, ...pedidos.filter(p=>EN_COLA.includes(p.
 function val(id){ return document.getElementById(id).value.trim(); }
 function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 let toastT;
-function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show");
-  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2600); }
-</script>
-</body>
-</html>
+function toast(m){ const t=document.getElementById("
