@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestor de Pedidos · ERP</title>
+<title>Gestor de Pedidos · Gpro</title>
 <style>
   :root{
     --bg:#0f172a; --panel:#fff; --ink:#1e293b; --muted:#64748b;
@@ -110,7 +110,7 @@
 <!-- ================== LOGIN ================== -->
 <div id="login">
   <div class="login-card">
-    <h2>Gestor de Pedidos · ERP</h2>
+    <h2>Gestor de Pedidos · Gpro</h2>
     <p>Ingresá con tu email y contraseña.</p>
     <form onsubmit="return hacerLogin(event)">
       <label>Email</label>
@@ -126,7 +126,7 @@
 <!-- ================== APP ================== -->
 <div id="app" style="display:none">
   <header>
-    <h1>Gestor de Pedidos · ERP</h1>
+    <h1>Gestor de Pedidos · Gpro</h1>
     <span class="tag" id="hdrTag"></span>
     <div class="spacer"></div>
     <div class="me">
@@ -542,4 +542,4 @@ function maxOrden(){ return Math.max(0, ...pedidos.filter(p=>EN_COLA.includes(p.
 function val(id){ return document.getElementById(id).value.trim(); }
 function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 let toastT;
-function toast(m){ const t=document.getElementById("
+function toast(m){ const t=document.getElementByI
