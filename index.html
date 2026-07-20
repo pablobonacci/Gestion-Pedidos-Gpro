@@ -111,15 +111,39 @@
 <div id="login">
   <div class="login-card">
     <h2>Gestor de Pedidos · Gpro</h2>
-    <p>Ingresá con tu email y contraseña.</p>
-    <form onsubmit="return hacerLogin(event)">
-      <label>Email</label>
-      <input id="l-email" type="email" required autocomplete="username" placeholder="tu@empresa.com">
-      <label>Contraseña</label>
-      <input id="l-pass" type="password" required autocomplete="current-password" placeholder="••••••••">
-      <div class="login-err" id="l-err"></div>
-      <button class="btn" style="width:100%;margin-top:8px" id="l-btn">Entrar</button>
-    </form>
+    <div id="p-login">
+      <p>Ingresá con tu email y contraseña.</p>
+      <form onsubmit="return hacerLogin(event)">
+        <label>Email</label>
+        <input id="l-email" type="email" required autocomplete="username" placeholder="tu@empresa.com">
+        <label>Contraseña</label>
+        <input id="l-pass" type="password" required autocomplete="current-password" placeholder="••••••••">
+        <div class="login-err" id="l-err"></div>
+        <button class="btn" style="width:100%;margin-top:8px" id="l-btn">Entrar</button>
+      </form>
+      <p style="margin-top:14px;text-align:center"><a href="#" onclick="return mostrarReset(event)" style="color:var(--brand);font-size:13px">¿Olvidaste tu contraseña?</a></p>
+    </div>
+    <div id="p-reset" style="display:none">
+      <p>Ingresá tu email y te enviamos un enlace para restablecer la contraseña.</p>
+      <form onsubmit="return enviarReset(event)">
+        <label>Email</label>
+        <input id="r-email" type="email" required placeholder="tu@empresa.com">
+        <div class="login-err" id="r-msg"></div>
+        <button class="btn" style="width:100%;margin-top:8px" id="r-btn">Enviar enlace</button>
+      </form>
+      <p style="margin-top:14px;text-align:center"><a href="#" onclick="return volverLogin(event)" style="color:var(--muted);font-size:13px">← Volver</a></p>
+    </div>
+    <div id="p-nueva" style="display:none">
+      <p>Elegí tu nueva contraseña.</p>
+      <form onsubmit="return guardarNuevaClave(event)">
+        <label>Nueva contraseña</label>
+        <input id="n-pass" type="password" required minlength="6" placeholder="••••••••">
+        <label>Repetir contraseña</label>
+        <input id="n-pass2" type="password" required minlength="6" placeholder="••••••••">
+        <div class="login-err" id="n-msg"></div>
+        <button class="btn" style="width:100%;margin-top:8px" id="n-btn">Guardar contraseña</button>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -233,15 +257,20 @@ async function init(){
     return;
   }
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  sb.auth.onAuthStateChange((event, s)=>{
+    if(event==="PASSWORD_RECOVERY"){ mostrarNuevaClave(); return; }
+    if(s && !me) entrar(); else if(!s && me) mostrarLogin();
+  });
+  if(location.hash.includes("type=recovery")){ mostrarNuevaClave(); return; }
   const { data:{ session } } = await sb.auth.getSession();
   if(session) await entrar();
   else mostrarLogin();
-  sb.auth.onAuthStateChange((_e, s)=>{ if(s && !me) entrar(); else if(!s && me) mostrarLogin(); });
 }
 function mostrarLogin(){
   me = null;
   document.getElementById("app").style.display = "none";
   document.getElementById("login").classList.add("open");
+  panel("login");
 }
 async function hacerLogin(e){
   e.preventDefault();
@@ -255,6 +284,42 @@ async function hacerLogin(e){
   return false;
 }
 async function salir(){ await sb.auth.signOut(); me = null; mostrarLogin(); }
+
+/* ---------- Recuperar contraseña ---------- */
+function panel(name){ ["login","reset","nueva"].forEach(n=>{ const el=document.getElementById("p-"+n); if(el) el.style.display=(n===name)?"":"none"; }); }
+function mostrarReset(e){ e.preventDefault(); document.getElementById("r-msg").textContent=""; document.getElementById("r-email").value=document.getElementById("l-email").value; panel("reset"); return false; }
+function volverLogin(e){ e.preventDefault(); panel("login"); return false; }
+async function enviarReset(e){
+  e.preventDefault();
+  const btn=document.getElementById("r-btn"); btn.disabled=true;
+  const msg=document.getElementById("r-msg"); msg.style.color="var(--muted)"; msg.textContent="Enviando…";
+  const base=location.href.split("#")[0].split("?")[0];
+  const { error } = await sb.auth.resetPasswordForEmail(document.getElementById("r-email").value.trim(), { redirectTo: base });
+  btn.disabled=false;
+  if(error){ msg.style.color="var(--danger)"; msg.textContent="No se pudo enviar: "+error.message; return false; }
+  msg.style.color="var(--ok)"; msg.textContent="Listo. Revisá tu email y hacé clic en el enlace para elegir una nueva contraseña.";
+  return false;
+}
+function mostrarNuevaClave(){
+  document.getElementById("app").style.display="none";
+  document.getElementById("login").classList.add("open");
+  panel("nueva");
+}
+async function guardarNuevaClave(e){
+  e.preventDefault();
+  const msg=document.getElementById("n-msg");
+  const p1=document.getElementById("n-pass").value, p2=document.getElementById("n-pass2").value;
+  if(p1!==p2){ msg.style.color="var(--danger)"; msg.textContent="Las contraseñas no coinciden."; return false; }
+  const btn=document.getElementById("n-btn"); btn.disabled=true;
+  const { error } = await sb.auth.updateUser({ password:p1 });
+  btn.disabled=false;
+  if(error){ msg.style.color="var(--danger)"; msg.textContent="No se pudo cambiar: "+error.message; return false; }
+  msg.style.color="var(--ok)"; msg.textContent="¡Contraseña actualizada! Ya podés entrar.";
+  history.replaceState(null,"",location.pathname);
+  await sb.auth.signOut(); me=null;
+  setTimeout(()=>{ mostrarLogin(); document.getElementById("l-email").focus(); }, 1200);
+  return false;
+}
 
 async function entrar(){
   const { data:{ user } } = await sb.auth.getUser();
